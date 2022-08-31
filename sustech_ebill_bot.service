@@ -1,0 +1,11 @@
+[Unit]
+Description=Control of telegram bot (sustech_ebill_bot)
+After=network.target
+
+[Service]
+User=anguangyan
+ExecStart=/path/to/your/python /path/to/main.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
