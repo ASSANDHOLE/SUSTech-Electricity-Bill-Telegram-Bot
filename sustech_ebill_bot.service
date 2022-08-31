@@ -3,7 +3,7 @@ Description=Control of telegram bot (sustech_ebill_bot)
 After=network.target
 
 [Service]
-User=anguangyan
+User=username
 ExecStart=/path/to/your/python /path/to/main.py
 Restart=on-failure
 
