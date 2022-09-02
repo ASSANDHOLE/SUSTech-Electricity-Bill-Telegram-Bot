@@ -12,7 +12,7 @@ pip install pause
 
 ## 启动机器人
 
-启动机器人之前，请先修改[main.py](./main.py) 文件中的参数 (line 20-25)
+启动机器人之前，请先修改[main.py](./main.py) 文件中的参数 (line 25-35)
 
 ```python
 TELEGRAM_BOT_TOKEN = 'PUT_TOKEN_HERE'

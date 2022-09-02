@@ -15,17 +15,56 @@ import requests
 import pause
 import datetime
 
-from sustech_cas_login import connect
+from sustech_cas_login import get_sustech_cas_session
+
+QUERY_URL = 'http://ehall.sustech.edu.cn/dxggyw/sys/sdjfgl/paymentController/getFjyl.do?ldid={}&mph={}'
+
+####################################################
+##############   PROGRAM CONFIG   ##################
+####################################################
 
 TELEGRAM_BOT_TOKEN = 'PUT_TOKEN_HERE'
 
 DATA_STORE_PATH = '/path/to/subs.pkl'
-QUERY_URL = 'http://ehall.sustech.edu.cn/dxggyw/sys/sdjfgl/paymentController/getFjyl.do?ldid={}&mph={}'
 SUSTECH_USERNAME = 'xxxxxxxx'  # 学号
 SUSTECH_PASSWORD = 'passwd'  # 密码
 
+# the following are not required to change
+
 ERR = -1e-3
 SLEEP_TIME = 0.5  # in seconds
+
+####################################################
+
+BUILDING_NAME_ID_MAP = {
+    '1': '141',
+    '2': '142',
+    '3': '143',
+    '4': '145',
+    '5': '146',
+    '6': '147',
+    '11': '11',
+    '12': '12',
+    '13': '13',
+    '14': '14',
+    '15': '15',
+    '16': '16'
+}
+
+BUILDING_ID_FULL_NAME_MAP = {
+    '141': '湖畔1栋',
+    '142': '湖畔2栋',
+    '143': '湖畔3栋东',
+    '145': '湖畔4栋',
+    '146': '湖畔5栋',
+    '147': '湖畔6栋',
+    '11': '二期书院11栋',
+    '12': '二期书院12栋',
+    '13': '二期书院13栋',
+    '14': '二期书院14栋',
+    '15': '二期书院15栋',
+    '16': '二期书院16栋'
+}
 
 
 def get_remains(session: requests.Session, building: str, room_id: str) -> float:
@@ -90,7 +129,7 @@ class Subscriptions:
         data: dict
         with self.lock:
             data = deepcopy(self.data)
-        sess = connect(SUSTECH_USERNAME, SUSTECH_PASSWORD)
+        sess = get_sustech_cas_session(SUSTECH_USERNAME, SUSTECH_PASSWORD)
         for chat_id, (building, room_id, threshold) in data.items():
             remains = get_remains(sess, building, room_id)
             if remains == ERR:
@@ -118,12 +157,13 @@ def bot_help(update: Update, context: CallbackContext) -> None:
     """Send full Help to user"""
     update.message.reply_markdown_v2("""
     help:
-    • Use `/subscribe <二期书院栋数> <房间号> <电费阈值rmb>` to subscribe
+    • Use `/subscribe <湖畔或二期书院栋数> <房间号> <电费阈值rmb>` to subscribe
     • Use `/cancel` to cancel your subscription
     • Use `/get` to get your subscription details
 
-    example:
+    explain:
     • `/subscribe 11 312 50` 以获取通知当学生宿舍11栋312寝室的电量低于50元, 每日一次
+    • 支持的楼栋有湖畔1-2栋, 湖畔3栋东, 湖畔4-6栋, 二期书院11-16栋
     • 当已subscribe时再次subscribe会取消之前的订阅，相当于先运行一次 `/cancel`
     """)
 
@@ -132,9 +172,10 @@ def add_job(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat_id
     try:
         building = context.args[0]
-        if building not in ('11', '12', '13', '14', '15', '16'):
+        if building not in BUILDING_NAME_ID_MAP:
             update.message.reply_text('栋数错误')
             return
+        building = BUILDING_NAME_ID_MAP[building]
         room_id = context.args[1]
         threshold = int(context.args[2])
         if threshold <= 0:
@@ -152,7 +193,7 @@ def get_subs(update: Update, context: CallbackContext) -> None:
     if job is None:
         update.message.reply_text('You have no active subscription.')
     else:
-        update.message.reply_markdown_v2(f'You are subscribed to `building={job[0]}`, `room={job[1]}` with threshold `{job[2]}CNY`')
+        update.message.reply_markdown_v2(f'You are subscribed to `building={BUILDING_ID_FULL_NAME_MAP[job[0]]}`, `room={job[1]}` with threshold `{job[2]}CNY`')
 
 
 def cancel(update: Update, context: CallbackContext) -> None:
