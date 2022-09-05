@@ -163,7 +163,7 @@ def bot_help(update: Update, context: CallbackContext) -> None:
 
     explain:
     • `/subscribe 11 312 50` 以获取通知当学生宿舍11栋312寝室的电量低于50元, 每日一次
-    • 支持的楼栋有湖畔1-2栋, 湖畔3栋东, 湖畔4-6栋, 二期书院11-16栋
+    • 支持的楼栋有湖畔1\-2栋, 湖畔3栋东, 湖畔4\-6栋, 二期书院11\-16栋
     • 当已subscribe时再次subscribe会取消之前的订阅，相当于先运行一次 `/cancel`
     """)
 
