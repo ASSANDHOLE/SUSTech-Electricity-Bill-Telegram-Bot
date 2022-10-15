@@ -1,0 +1,9 @@
+{
+    "TELEGRAM_BOT_TOKEN": "1234567890:ABCDEF123456789 (example token)",
+    "DATA_STORE_PATH": "/home/robot/datastore.pkl (store subscription data)",
+    "SUSTECH_USERNAME": "119XXXXX (example id)",
+    "SUSTECH_PASSWORD": "123456 (example password)",
+    "SLEEP_TIME": 0.5,
+    "comment1": "SLEEP_TIME is the time interval between two requests to sustech website, you can remove these comments",
+    "comment2": "You can delete any key in the config to use the default value specified in the python file"
+}

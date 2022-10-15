@@ -67,6 +67,30 @@ BUILDING_ID_FULL_NAME_MAP = {
 }
 
 
+def try_load_config() -> bool:
+    cfg_file = './config.json'
+    cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), cfg_file)
+    if not os.path.exists(cfg_file):
+        return False
+    with open(cfg_file, 'r') as f:
+        try:
+            cfg = json.load(f)
+        except json.JSONDecodeError:
+            return False
+
+        global_vars = [
+            'TELEGRAM_BOT_TOKEN',
+            'DATA_STORE_PATH',
+            'SUSTECH_USERNAME',
+            'SUSTECH_PASSWORD',
+            'SLEEP_TIME'
+        ]
+        for k in global_vars:
+            if k in cfg:
+                globals()[k] = cfg[k]
+    return True
+
+
 def get_remains(session: requests.Session, building: str, room_id: str) -> float:
     url = QUERY_URL.format(building, room_id)
     reply = session.get(url)
@@ -110,7 +134,7 @@ class Subscriptions:
             self.store_data()
         return ret
 
-    def get_job(self, chat_id: int) -> Optional[tuple[str, str,  int]]:
+    def get_job(self, chat_id: int) -> Optional[tuple[str, str, int]]:
         with self.lock:
             if chat_id not in self.data:
                 return None
@@ -138,6 +162,7 @@ class Subscriptions:
                 self.updater.bot.send_message(chat_id=chat_id, text=f'余量不足: `{remains:.2f} <= {threshold}`')
             time.sleep(SLEEP_TIME)
 
+
 SUBS: Subscriptions
 
 # Enable logging
@@ -150,7 +175,8 @@ logger = logging.getLogger(__name__)
 
 def start(update: Update, context: CallbackContext) -> None:
     """Sends brief explanation on how to use the bot."""
-    update.message.reply_markdown_v2('Hi\. Use `/subscribe <二期书院栋数> <房间号> <电费阈值>` to subscribe, more help by `/help`')
+    update.message.reply_markdown_v2(
+        'Hi\. Use `/subscribe <二期书院栋数> <房间号> <电费阈值>` to subscribe, more help by `/help`')
 
 
 def bot_help(update: Update, context: CallbackContext) -> None:
@@ -193,7 +219,8 @@ def get_subs(update: Update, context: CallbackContext) -> None:
     if job is None:
         update.message.reply_text('You have no active subscription.')
     else:
-        update.message.reply_markdown_v2(f'You are subscribed to `building={BUILDING_ID_FULL_NAME_MAP[job[0]]}`, `room={job[1]}` with threshold `{job[2]}CNY`')
+        update.message.reply_markdown_v2(
+            f'You are subscribed to `building={BUILDING_ID_FULL_NAME_MAP[job[0]]}`, `room={job[1]}` with threshold `{job[2]}CNY`')
 
 
 def cancel(update: Update, context: CallbackContext) -> None:
@@ -204,10 +231,22 @@ def cancel(update: Update, context: CallbackContext) -> None:
         update.message.reply_text('no active subscription')
 
 
+def fast_query_remains(update: Update, context: CallbackContext) -> None:
+    chat_id = update.message.chat_id
+    job = SUBS.get_job(chat_id)
+    if job is None:
+        update.message.reply_text('You have no active subscription.')
+    else:
+        sess = get_sustech_cas_session(SUSTECH_USERNAME, SUSTECH_PASSWORD)
+        building, room_id, _ = job
+        remains = get_remains(sess, building, room_id)
+        if remains == ERR:
+            update.message.reply_text('获取余量失败')
+        else:
+            update.message.reply_markdown_v2(f'余量: `{remains:.2f} CNY`')
+
+
 def main() -> None:
-    """Run bot."""
-    # Create the Updater and pass it your bot's token.
-    # put your bot's token here
     updater = Updater(TELEGRAM_BOT_TOKEN)
     global SUBS
     SUBS = Subscriptions(updater)
@@ -221,6 +260,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('subscribe', add_job))
     dispatcher.add_handler(CommandHandler('cancel', cancel))
     dispatcher.add_handler(CommandHandler('get', get_subs))
+    dispatcher.add_handler(CommandHandler('query', fast_query_remains))
 
     # Start the Bot
     updater.start_polling()
@@ -234,4 +274,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    try_load_config()
     main()
