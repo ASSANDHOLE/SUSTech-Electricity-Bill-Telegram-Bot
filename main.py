@@ -69,10 +69,15 @@ BUILDING_ID_FULL_NAME_MAP = {
 
 def try_load_config() -> bool:
     cfg_file = './config.json'
-    if not os.path.exists('./config.json'):
+    cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), cfg_file)
+    if not os.path.exists(cfg_file):
         return False
     with open(cfg_file, 'r') as f:
-        cfg = json.load(f)
+        try:
+            cfg = json.load(f)
+        except json.JSONDecodeError:
+            return False
+
         global_vars = [
             'TELEGRAM_BOT_TOKEN',
             'DATA_STORE_PATH',
