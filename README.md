@@ -14,7 +14,7 @@ pip install pause
 
 启动机器人之前，请先创建一个`config.json`文件，内容参考[config_template.json](config_template.json)
 
-或修改[main.py](./main.py) 文件中的参数 (line 25-35)
+或修改[main.py](./main.py) 文件中的参数 (line 25-36)
 
 程序会尝试读取当前目录下的`config.json`文件，如果没有则使用[main.py](./main.py)中的默认参数
 
@@ -24,6 +24,7 @@ DATA_STORE_PATH = '/path/to/subs.pkl'
 SUSTECH_USERNAME = 'xxxxxxxx'  # 学号
 SUSTECH_PASSWORD = 'passwd'  # 密码
 ...
+QUERY_HOUR = int(8)  # 每天查询的时间 in hour
 SLEEP_TIME = 0.5  # 每次查询的间隔时间
 ```
 

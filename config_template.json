@@ -3,7 +3,9 @@
     "DATA_STORE_PATH": "/home/robot/datastore.pkl (store subscription data)",
     "SUSTECH_USERNAME": "119XXXXX (example id)",
     "SUSTECH_PASSWORD": "123456 (example password)",
+    "QUERY_HOUR": 8,
     "SLEEP_TIME": 0.5,
+    "comment0": "QUERY_HOUR is the hour of the day when the program will query the remains, 0-23 int",
     "comment1": "SLEEP_TIME is the time interval between two requests to sustech website, you can remove these comments",
     "comment2": "You can delete any key in the config to use the default value specified in the python file"
 }

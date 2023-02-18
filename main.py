@@ -31,10 +31,12 @@ SUSTECH_PASSWORD = 'passwd'  # 密码
 
 # the following are not required to change
 
-ERR = -1e-3
+QUERY_HOUR = int(8)  # hour of the day when the program will query the remains
 SLEEP_TIME = 0.5  # in seconds
 
 ####################################################
+
+ERR = -1e-3
 
 BUILDING_NAME_ID_MAP = {
     '1': '141',
@@ -83,11 +85,13 @@ def try_load_config() -> bool:
             'DATA_STORE_PATH',
             'SUSTECH_USERNAME',
             'SUSTECH_PASSWORD',
+            'QUERY_HOUR',
             'SLEEP_TIME'
         ]
         for k in global_vars:
             if k in cfg:
                 globals()[k] = cfg[k]
+    globals()['QUERY_HOUR'] = int(globals()['QUERY_HOUR'])
     return True
 
 
@@ -159,7 +163,7 @@ class Subscriptions:
             if remains == ERR:
                 self.updater.bot.send_message(chat_id=chat_id, text='获取余量失败')
             elif remains <= threshold:
-                self.updater.bot.send_message(chat_id=chat_id, text=f'余量不足: `{remains:.2f} <= {threshold}`')
+                self.updater.bot.send_message(chat_id=chat_id, text=f'{BUILDING_ID_FULL_NAME_MAP[building]}Room{room_id}电费余量不足: `{remains:.2f} <= {threshold}`')
             time.sleep(SLEEP_TIME)
 
 
@@ -176,19 +180,19 @@ logger = logging.getLogger(__name__)
 def start(update: Update, context: CallbackContext) -> None:
     """Sends brief explanation on how to use the bot."""
     update.message.reply_markdown_v2(
-        'Hi\. Use `/subscribe <二期书院栋数> <房间号> <电费阈值>` to subscribe, more help by `/help`')
+        'Hi\. Use `/subscribe <宿舍栋数> <房间号> <电费阈值>` to subscribe, more info by `/help`')
 
 
 def bot_help(update: Update, context: CallbackContext) -> None:
     """Send full Help to user"""
-    update.message.reply_markdown_v2("""
+    update.message.reply_markdown_v2(f"""
     help:
-    • Use `/subscribe <湖畔或二期书院栋数> <房间号> <电费阈值rmb>` to subscribe
+    • Use `/subscribe <湖畔或二期书院栋数> <房间号> <电费阈值rmb\(整数\)>` to subscribe
     • Use `/cancel` to cancel your subscription
     • Use `/get` to get your subscription details
 
     explain:
-    • `/subscribe 11 312 50` 以获取通知当学生宿舍11栋312寝室的电量低于50元, 每日一次
+    • `/subscribe 11 312 50` 以获取通知当学生宿舍11栋312寝室的电量低于50元, 每日约{QUERY_HOUR:02}:00 \({str(datetime.datetime.now().astimezone().tzinfo)}\)自动查询一次
     • 支持的楼栋有湖畔1\-2栋, 湖畔3栋东, 湖畔4\-6栋, 二期书院11\-16栋
     • 当已subscribe时再次subscribe会取消之前的订阅，相当于先运行一次 `/cancel`
     """)
@@ -210,7 +214,7 @@ def add_job(update: Update, context: CallbackContext) -> None:
         SUBS.add_job(chat_id, building, room_id, threshold)
         update.message.reply_text('ok')
     except (IndexError, ValueError):
-        update.message.reply_markdown_v2('Usage: `/subscribe <二期书院栋数> <房间号> <电费阈值>`')
+        update.message.reply_markdown_v2('Usage: `/subscribe <宿舍栋数> <房间号> <电费阈值>`')
 
 
 def get_subs(update: Update, context: CallbackContext) -> None:
@@ -243,7 +247,7 @@ def fast_query_remains(update: Update, context: CallbackContext) -> None:
         if remains == ERR:
             update.message.reply_text('获取余量失败')
         else:
-            update.message.reply_markdown_v2(f'余量: `{remains:.2f} CNY`')
+            update.message.reply_markdown_v2(f'{BUILDING_ID_FULL_NAME_MAP[building]}Room{room_id}电费余量: `{remains:.2f} CNY`')
 
 
 def main() -> None:
@@ -265,11 +269,15 @@ def main() -> None:
     # Start the Bot
     updater.start_polling()
 
-    next_day_8am = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1), datetime.time(8, 0))
+    current_time = datetime.datetime.now().time()
+    if current_time < datetime.time(QUERY_HOUR, 0):
+        next_query_time = datetime.datetime.combine(datetime.date.today(), datetime.time(QUERY_HOUR, 0))
+    else:
+        next_query_time = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1), datetime.time(QUERY_HOUR, 0))
 
     while True:
-        pause.until(next_day_8am)
-        next_day_8am = next_day_8am + datetime.timedelta(days=1)
+        pause.until(next_query_time)
+        next_query_time = next_query_time + datetime.timedelta(days=1)
         SUBS.send_all()
 
 
